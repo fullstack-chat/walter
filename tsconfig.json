@@ -99,6 +99,7 @@
     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
   },
   "exclude": [
-    "./drizzle.config.ts"
+    "./drizzle.config.ts",
+    "/_scripts"
   ]
 }
