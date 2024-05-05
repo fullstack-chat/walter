@@ -1,4 +1,4 @@
-import { AttachmentBuilder, ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import { AttachmentBuilder, ChatInputCommandInteraction, ForumChannel, SlashCommandBuilder } from "discord.js";
 import SlashCommand, { SlashCommandOptionType } from "../models/slash_command";
 
 const helpText = `
@@ -61,10 +61,10 @@ export const img: SlashCommand = {
         includeTechnicalDetails = option.value as boolean
       }
     })
-    const reply = await interaction.followUp({
-      content: `Generating image for \`${body.prompt}\` ...`,
-      fetchReply: true
+    await interaction.followUp({
+      content: `Generating image for \`${body.prompt}\` ...`
     })
+
     console.log(`[img] "${body.prompt}" requested by ${interaction.user.tag}`)
     const res = await fetch(`${process.env.STABLE_DIFFUSION_URL}/sdapi/v1/txt2img`, {
       method: "POST",
@@ -82,13 +82,16 @@ export const img: SlashCommand = {
       threadName = `${threadName.substring(0, 30)}...`
     }
     delete data.images
-    const thread = await reply.startThread({
+
+    const forumChannel = interaction.guild?.channels.cache.find(channel => channel.id === process.env.IMG_GEN_CHANNEL_ID) as ForumChannel
+
+    const thread = await forumChannel.threads.create({
       name: `🌅 ${threadName}`,
+      message: {
+        content: `Here is the image for \`${body.prompt}\` requested by <@${interaction.user.id}>:`,
+        files: [attachment]
+      },
       autoArchiveDuration: 1440
-    })
-    await thread.send({
-      content: `Here is the image for \`${body.prompt}\` requested by <@${interaction.user.id}>:`,
-      files: [attachment]
     })
     if(includeTechnicalDetails) {
       await thread.send(`Parameters:\n\`\`\`json\n${JSON.stringify(data.parameters, null, 2)}\n\`\`\``)
