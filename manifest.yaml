@@ -1,10 +1,29 @@
 apiVersion: v1
-kind: Pod
-metadata:
-  name: fsc-bot
-  labels:
-    name: fsc-bot
-spec:
-  containers:
-    - name: fsc-bot
-      image: localhost:32000/fsc-bot
+items:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: walter-service
+    spec:
+      type: ClusterIP
+      selector:
+        service: walter
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: walter
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          service: walter
+      template:
+        metadata:
+          labels:
+            service: walter
+        spec:
+          containers:
+            - name: walter
+              image: walter
+kind: List
+metadata: {}
