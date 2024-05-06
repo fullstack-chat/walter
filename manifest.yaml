@@ -24,6 +24,6 @@ items:
         spec:
           containers:
             - name: walter
-              image: walter
+              image: localhost:32000/walter
 kind: List
 metadata: {}
