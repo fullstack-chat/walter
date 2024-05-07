@@ -16,6 +16,7 @@ import { help } from "./slash/help"
 import { joke } from "./slash/dadjoke"
 import { leaderboard } from "./slash/leaderboard"
 import { img } from "./slash/img"
+import { deepsight } from "./slash/deepsight"
 import dailyDiscussionCmd from "./slash/discussionQuestion";
 
 import XpManager from "./managers/xp_manager";
@@ -57,6 +58,7 @@ client.on(Events.ClientReady, async () => {
     slashCommandManager.addCommand(leaderboard);
     slashCommandManager.addCommand(dailyDiscussionCmd);
     slashCommandManager.addCommand(img);
+    slashCommandManager.addCommand(deepsight);
     slashCommandManager.registerCommands();
 
     log.info("=====")
