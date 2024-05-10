@@ -20,7 +20,7 @@ export const xp: SlashCommand = {
     .setDescription("Returns your current XP and level"),
   execute: async (interaction: ChatInputCommandInteraction) => {
     await interaction.deferReply();
-    
+
     const xpManager = getInstance(XpManager.name)
     let currentXp = xpManager.getXpForUserId(interaction.user.id)
     if(currentXp) {

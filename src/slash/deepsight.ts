@@ -1,5 +1,6 @@
 import { AttachmentBuilder, ChatInputCommandInteraction, ForumChannel, SlashCommandBuilder } from "discord.js";
 import SlashCommand, { SlashCommandOptionType } from "../models/slash_command";
+import { getMemberPermittedChannels } from "../security";
 
 const helpText = `
 TODO:
@@ -29,8 +30,12 @@ export const deepsight: SlashCommand = {
         opt.prompt = option.value as string
       }
     })
+    let ids = getMemberPermittedChannels(interaction)
+    if(!ids) {
+      throw new Error("Unable to parse permitted channels.")
+    }
 
-    const res = await fetch(`${process.env.DEEPSIGHT_URL}/question?q=${opt.prompt}`)
+    const res = await fetch(`${process.env.DEEPSIGHT_URL}/question?q=${opt.prompt}&permittedChannels=${ids.join(",")}`)
     const data = await res.json()
 
     await interaction.followUp({
