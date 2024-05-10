@@ -87,6 +87,16 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
   await slashCommandManager.handleCommand(interaction)
 });
 
+client.on(Events.ThreadCreate, async thread => {
+  const projectForumId = '1153093245807644753'
+  if(thread.parentId === projectForumId) {
+    const channelId = process.env.GENERAL_CHANNEL_ID as string;
+    const channel = await client.channels.fetch(channelId)
+    // @ts-ignore
+    channel.send(`<@${thread.ownerId}> created a new project! Check it out: <#${thread.id}>`)
+  }
+})
+
 // Standard messages
 client.on(Events.MessageCreate, async message => {
   if (message.author.bot) {
