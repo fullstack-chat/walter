@@ -23,6 +23,8 @@ import XpManager from "./managers/xp_manager";
 import { RegisteredNames, registerService } from "./container";
 import SlashCommandManager from "./managers/slash_manager";
 import FaunaService from "./db/FaunaService";
+import { mentionRole } from "./helpers";
+import { Roles } from "./data/roles";
 
 const client = new Client({
   intents: [
@@ -180,5 +182,5 @@ cronitor.schedule("fsc-motd", "0 8 * * *", async () => {
   const channel = await client.channels.fetch(channelId)
 
   //@ts-ignore
-  await channel.send(q)
+  await channel.send(`${mentionRole(Roles.DAILY_DISCUSSION)} ${q}`)
 })
