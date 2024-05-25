@@ -12,5 +12,5 @@ export function rng(min: number, max: number): number {
 }
 
 export function mentionRole(roleId: Roles): string {
-  return `<@${roleId}>`
+  return `<@$${roleId}>`
 }
