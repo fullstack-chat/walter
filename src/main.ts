@@ -175,7 +175,7 @@ client.login(process.env.BOT_TOKEN);
 
 const cronitor = new Cronitor(process.env.CRONITOR_KEY as string)
 cronitor.wraps(nodeCron)
-cronitor.schedule("fsc-motd", "0 8 * * *", async () => {
+cronitor.schedule("fsc-motd", "0 13 * * *", async () => {
   const q = getRandomDailyDiscussionQuestion()
 
   const channelId = process.env.GENERAL_CHANNEL_ID as string;
