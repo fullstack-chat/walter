@@ -18,7 +18,6 @@ import nodeCron from "node-cron";
 import { getRandomDailyDiscussionQuestion } from "./data/questions";
 import { Cronitor } from "cronitor"
 
-
 import { ChannelType, Client, Events, GatewayIntentBits, Interaction } from "discord.js";
 import { isSenderPatron, sendModBroadcast } from "./security";
 import { logger as log } from "./logger";
@@ -85,10 +84,12 @@ client.on(Events.ClientReady, async () => {
   }
 
   log.info(`${client?.user?.username} is ready!`);
+  Sentry.captureMessage(`${client?.user?.username} is ready!`);
 });
 
 client.on(Events.Error, e => {
   log.info(`${client?.user?.username} borked: ${e}`);
+  Sentry.captureException(e);
 });
 
 client.on(Events.GuildMemberAdd, async member => {
