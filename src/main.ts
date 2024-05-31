@@ -13,7 +13,6 @@ Sentry.init({
   profilesSampleRate: 1.0,
 });
 
-
 import nodeCron from "node-cron";
 import { getRandomDailyDiscussionQuestion } from "./data/questions";
 import { Cronitor } from "cronitor"
@@ -37,6 +36,7 @@ import SlashCommandManager from "./managers/slash_manager";
 import FaunaService from "./db/FaunaService";
 import { mentionRole } from "./helpers";
 import { Roles } from "./data/roles";
+import { isAiDisabled } from "./config";
 
 const client = new Client({
   intents: [
@@ -128,6 +128,10 @@ client.on(Events.MessageCreate, async message => {
   // Someone has mentioned the bot
   if(message.mentions.has(client.user!.id) &&
     (message.content.startsWith(tag) || message.content.endsWith(tag))) {
+    if(isAiDisabled) {
+      await message.reply("Sorry, I can't do that for you. The AI is disabled right now.");
+      return;
+    }
     // Check if the user has the Patron role, DM them if not
     if(!isSenderPatron(message)) {
       await message.author.send("Sorry, I can't do that for you. Become a patron to unlock this feature!");
