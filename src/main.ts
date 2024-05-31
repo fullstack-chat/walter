@@ -1,6 +1,19 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
+import * as Sentry from "@sentry/node";
+import { nodeProfilingIntegration } from "@sentry/profiling-node"
+
+Sentry.init({
+  dsn: "https://e61d0f42684fb253f4583324606fccaa@o4507352039424000.ingest.us.sentry.io/4507352043225088",
+  integrations: [
+    nodeProfilingIntegration(),
+  ],
+  tracesSampleRate: 1.0,
+  profilesSampleRate: 1.0,
+});
+
+
 import nodeCron from "node-cron";
 import { getRandomDailyDiscussionQuestion } from "./data/questions";
 import { Cronitor } from "cronitor"
