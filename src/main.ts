@@ -191,14 +191,14 @@ client.on(Events.MessageCreate, async message => {
 
 client.login(process.env.BOT_TOKEN);
 
-const cronitor = new Cronitor(process.env.CRONITOR_KEY as string)
-cronitor.wraps(nodeCron)
-cronitor.schedule("fsc-motd", "0 13 * * *", async () => {
-  const q = getRandomDailyDiscussionQuestion()
+// const cronitor = new Cronitor(process.env.CRONITOR_KEY as string)
+// cronitor.wraps(nodeCron)
+// cronitor.schedule("fsc-motd", "0 13 * * *", async () => {
+//   const q = getRandomDailyDiscussionQuestion()
 
-  const channelId = process.env.GENERAL_CHANNEL_ID as string;
-  const channel = await client.channels.fetch(channelId)
+//   const channelId = process.env.GENERAL_CHANNEL_ID as string;
+//   const channel = await client.channels.fetch(channelId)
 
-  //@ts-ignore
-  await channel.send(`${mentionRole(Roles.DAILY_DISCUSSION)} ${q}`)
-})
+//   //@ts-ignore
+//   await channel.send(`${mentionRole(Roles.DAILY_DISCUSSION)} ${q}`)
+// })
