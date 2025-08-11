@@ -29,6 +29,7 @@ import { leaderboard } from "./slash/leaderboard"
 import { img } from "./slash/img"
 import { deepsight } from "./slash/deepsight"
 import dailyDiscussionCmd from "./slash/discussionQuestion";
+import { rollup } from "./slash/rollup";
 
 import XpManager from "./managers/xp_manager";
 import { RegisteredNames, registerService } from "./container";
@@ -36,6 +37,9 @@ import SlashCommandManager from "./managers/slash_manager";
 import { mentionRole } from "./helpers";
 import { Roles } from "./data/roles";
 import { isAiDisabled } from "./config";
+import ScheduledJobManager from "./managers/scheduled_job_manager";
+import { helloWorldJob } from "./jobs/hello_world";
+import { projectRollupJob } from "./jobs/project_rollup";
 
 const client = new Client({
   intents: [
@@ -52,6 +56,9 @@ registerService(log, "logger")
 
 const slashCommandManager = new SlashCommandManager(log);
 registerService(slashCommandManager)
+
+const scheduledJobManager = new ScheduledJobManager();
+registerService(scheduledJobManager)
 
 let xpManager: XpManager;
 
@@ -71,7 +78,11 @@ client.on(Events.ClientReady, async () => {
     slashCommandManager.addCommand(dailyDiscussionCmd);
     slashCommandManager.addCommand(img);
     slashCommandManager.addCommand(deepsight);
+    slashCommandManager.addCommand(rollup);
     slashCommandManager.registerCommands();
+
+    scheduledJobManager.registerJob(helloWorldJob)
+    scheduledJobManager.registerJob(projectRollupJob)
 
     log.info("=====")
     log.info("Registered slash commands:");
@@ -85,11 +96,14 @@ client.on(Events.ClientReady, async () => {
   Sentry.captureMessage(`${client?.user?.username} is ready!`);
 });
 
+
+// Log errors to Sentry
 client.on(Events.Error, e => {
   log.info(`${client?.user?.username} borked: ${e}`);
   Sentry.captureException(e);
 });
 
+// Inform the mods that a new member joined the server!
 client.on(Events.GuildMemberAdd, async member => {
   await sendModBroadcast(member.guild, `**${member.user.username}** just joined **${member.guild.name}**!`);
 });
@@ -102,8 +116,7 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 });
 
 client.on(Events.ThreadCreate, async thread => {
-  const projectForumId = '1153093245807644753'
-  if(thread.parentId === projectForumId) {
+  if(thread.parentId === process.env.PROJECT_FORUM_CHANNEL_ID) {
     const channelId = process.env.GENERAL_CHANNEL_ID as string;
     const channel = await client.channels.fetch(channelId)
     // @ts-ignore
@@ -189,15 +202,3 @@ client.on(Events.MessageCreate, async message => {
 });
 
 client.login(process.env.BOT_TOKEN);
-
-// const cronitor = new Cronitor(process.env.CRONITOR_KEY as string)
-// cronitor.wraps(nodeCron)
-// cronitor.schedule("fsc-motd", "0 13 * * *", async () => {
-//   const q = getRandomDailyDiscussionQuestion()
-
-//   const channelId = process.env.GENERAL_CHANNEL_ID as string;
-//   const channel = await client.channels.fetch(channelId)
-
-//   //@ts-ignore
-//   await channel.send(`${mentionRole(Roles.DAILY_DISCUSSION)} ${q}`)
-// })

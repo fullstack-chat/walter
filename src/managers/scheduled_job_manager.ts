@@ -6,6 +6,6 @@ export default class ScheduledJobManager {
 
   registerJob(job: ScheduledJob) {
     this.jobs[job.name] = job
-    cron.schedule(job.cron, job.execute, { name: job.name })
+    cron.schedule(job.cron, job.execute, { name: job.name, timezone: job.timezone })
   }
 }
