@@ -1,18 +1,15 @@
 import { Logger } from "winston";
 import XpRecord from "../models/xp_record";
-// import { getDb } from "../db/db";
-// import { userXp, users } from "../db/schema";
-import { sql } from "drizzle-orm";
-import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
-import FaunaService from "../db/FaunaService";
+import { db } from "../db/client";
+import { userXp, users } from "../db/schema";
+import { eq } from "drizzle-orm";
 
 export default class XpManager {
   // userId: XpRecord
   data: { [key: string]: XpRecord } = {};
   // userId: faunaRecordId
-  recordIds: { [key: string]: string } = {};
+  recordIds: { [key: string]: number } = {};
   log: Logger;
-  fauna: FaunaService
   faunaRecordId?: string;
   collectionName = "user_xp"
 
@@ -21,14 +18,13 @@ export default class XpManager {
   private fiveMinInMs = 300000;
   private levelUpConst = 0.4;
 
-  constructor(logger: Logger, fauna: FaunaService) {
+  constructor(logger: Logger) {
     this.log = logger;
-    this.fauna = fauna;
   }
 
   async init() {
     try {
-      let records = await this.fauna.listRecords(this.collectionName);
+      const records = await db.select().from(userXp);
       records.forEach((r: any) => {
         this.data[r.userId] = new XpRecord({
           userId: r.userId,
@@ -48,27 +44,20 @@ export default class XpManager {
   async saveUser(userId: string, user: XpRecord, isNew: boolean, username: string) {
     if (isNew) {
       try {
-        let record = await this.fauna.createRecord(this.collectionName, user);
-        this.data[userId] = new XpRecord({
-          userId: userId,
-          lastAppliedTimestamp: record.last_applied_time,
-          currentXp: record.current_xp,
-          multiplier: record.multiplier,
-          username: record.username,
-          penaltyCount: record.pentalty_count
-        });
+        const inserted = await db.insert(userXp).values(user as any).returning();
+        const record = inserted[0];
+        // Persist local cache and record id
+        this.data[userId] = user;
         this.recordIds[userId] = record.id;
-
-        await this.fauna.createRecord("users", {
-          userId,
-          username,
-        })
+        await db.insert(users).values({ userId, username });
       } catch (err: any) {
         this.log.error(`xpService.saveUser: ${err.toString()}`);
       }
     } else {
       try {
-        await this.fauna.updateRecord(this.collectionName, this.recordIds[userId], user);
+        await db.update(userXp)
+          .set(user as any)
+          .where(eq(userXp.id, this.recordIds[userId]));
         this.data[userId] = user;
       } catch (err: any) {
         this.log.error(`xpService.saveUser: ${err.toString()}`);

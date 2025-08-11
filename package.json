@@ -15,7 +15,9 @@
     "build": "tsc --build",
     "clean": "rm -rf ./dist",
     "dev": "nodemon",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+    "db:push": "drizzle-kit push:pg --config=drizzle.config.ts"
   },
   "keywords": [],
   "author": "",
@@ -26,11 +28,11 @@
     "@planetscale/database": "^1.11.0",
     "@sentry/node": "^8.7.0",
     "@sentry/profiling-node": "^8.7.0",
+    "@neondatabase/serverless": "^0.10.3",
     "cronitor": "^2.3.5",
     "discord.js": "^14.13.0",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.28.6",
-    "faunadb": "^4.8.0",
     "node-cron": "^3.0.3",
     "winston": "^3.10.0"
   }

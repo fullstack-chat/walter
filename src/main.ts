@@ -33,7 +33,6 @@ import dailyDiscussionCmd from "./slash/discussionQuestion";
 import XpManager from "./managers/xp_manager";
 import { RegisteredNames, registerService } from "./container";
 import SlashCommandManager from "./managers/slash_manager";
-import FaunaService from "./db/FaunaService";
 import { mentionRole } from "./helpers";
 import { Roles } from "./data/roles";
 import { isAiDisabled } from "./config";
@@ -59,8 +58,7 @@ let xpManager: XpManager;
 client.on(Events.ClientReady, async () => {
   try {
     if (process.env.IS_XP_ENABLED) {
-      let fauna = new FaunaService(process.env.FAUNA_SECRET!, "");
-      xpManager = new XpManager(log, fauna);
+      xpManager = new XpManager(log);
       await xpManager.init();
       registerService(xpManager);
     }
@@ -115,6 +113,7 @@ client.on(Events.ThreadCreate, async thread => {
 
 // Standard messages
 client.on(Events.MessageCreate, async message => {
+  log.info(`Message from ${message.author.username}: ${message.content}`);
   if (message.author.bot) {
     return;
   }
