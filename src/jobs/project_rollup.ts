@@ -1,4 +1,4 @@
-import { ChannelType, ForumChannel, ThreadChannel, Message, TextChannel, NewsChannel } from "discord.js";
+import { ChannelType, ForumChannel, ThreadChannel, Message, EmbedBuilder } from "discord.js";
 import { getInstance } from "../container";
 import ScheduledJob from "../models/scheduled_job";
 import { db, dbSchema } from "../db/client";
@@ -83,12 +83,10 @@ New messages (chronological):\n${body}
 Requirements:
 - 1-3 sentences, crisp and specific about what progressed, decisions, blockers, and next steps.
 - Include names of key contributors if clear.
-- Avoid pleasantries and meta-chatter.
-
-Output JSON with fields: {"summary": string, "keyPoints": string[], "contributors": string[]}`;
+- Avoid pleasantries and meta-chatter.`;
 }
 
-async function summarizeWithOpenAI(prompt: string): Promise<ThreadMemory | null> {
+async function summarizeWithOpenAI(prompt: string): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     log.error("OPENAI_API_KEY not set; skipping AI summary");
@@ -111,27 +109,24 @@ async function summarizeWithOpenAI(prompt: string): Promise<ThreadMemory | null>
       }),
     });
     const data = await res.json();
-    const content = data.choices?.[0]?.message?.content?.trim();
-    if (!content) return null;
-    // Try parse JSON from content; if not JSON, wrap as summary
-    try {
-      const parsed = JSON.parse(content);
-      const mem: ThreadMemory = {
-        summary: parsed.summary ?? content,
-        keyPoints: parsed.keyPoints ?? [],
-        contributors: parsed.contributors ?? [],
-      };
-      return mem;
-    } catch {
-      return { summary: content };
-    }
+    return data.choices?.[0]?.message?.content?.trim();
   } catch (e) {
     log.error("OpenAI summary failed", e);
     return null;
   }
 }
 
-async function postSummaryToGeneral(items: { threadId: string; summary: string }[]) {
+type RollupItem = {
+  threadId: string;
+  threadName: string;
+  url: string;
+  summary: string;
+  authorMention?: string;
+  keyPoints?: string[];
+  contributors?: string[];
+}
+
+async function postSummaryToGeneral(items: RollupItem[]) {
   if (items.length === 0) return;
   const client = getInstance("DiscordClient");
   const channelId = process.env.GENERAL_CHANNEL_ID as string;
@@ -144,14 +139,14 @@ async function postSummaryToGeneral(items: { threadId: string; summary: string }
     log.error("General channel is not a text channel");
     return;
   }
-  // @ts-ignore
-  const lines = items.map(i => `• <#${i.threadId}> — ${i.summary}`);
-  const msg = `Daily project updates:\n\n${lines.join("\n")}`;
-  // @ts-ignore
-  await channel.send(msg);
+  const embeds = items.map(i => buildProjectEmbed(i));
+  for (let i = 0; i < embeds.length; i += 10) {
+    // @ts-ignore
+    await channel.send({ embeds: embeds.slice(i, i + 10) });
+  }
 }
 
-async function postSummaryToChannel(channelId: string, items: { threadId: string; summary: string }[]) {
+async function postSummaryToChannel(channelId: string, items: RollupItem[]) {
   if (items.length === 0) return;
   const client = getInstance("DiscordClient");
   const channel = await client.channels.fetch(channelId);
@@ -159,11 +154,42 @@ async function postSummaryToChannel(channelId: string, items: { threadId: string
     log.error("Target channel is not a text or announcement channel");
     return;
   }
-  // @ts-ignore
-  const lines = items.map(i => `• <#${i.threadId}> — ${i.summary}`);
-  const msg = `Project updates (last 24h):\n\n${lines.join("\n")}`;
-  // @ts-ignore
-  await channel.send(msg);
+  const embeds = items.map(i => buildProjectEmbed(i));
+  for (let i = 0; i < embeds.length; i += 10) {
+    // @ts-ignore
+    await channel.send({ embeds: embeds.slice(i, i + 10) });
+  }
+}
+
+function buildProjectEmbed(item: RollupItem) {
+  const color = 0x0099FF;
+  const desc = truncate(item.summary || "", 4096);
+  const emb = new EmbedBuilder()
+    .setColor(color)
+    .setTitle(item.threadName || "Project Update")
+    .setDescription(desc)
+    .setTimestamp(new Date());
+
+  const fields: { name: string; value: string; inline?: boolean }[] = [];
+  // Always include project and author fields if available
+  fields.push({ name: "Project", value: `<#${item.threadId}>`, inline: true });
+  if (item.authorMention) fields.push({ name: "Author", value: item.authorMention, inline: true });
+  if (item.keyPoints && item.keyPoints.length) {
+    const value = truncate(item.keyPoints.map(k => `• ${k}`).join("\n"), 1024);
+    if (value) fields.push({ name: "Key Points", value });
+  }
+  if (item.contributors && item.contributors.length) {
+    const value = truncate(item.contributors.join(", "), 1024);
+    if (value) fields.push({ name: "Contributors", value, inline: true });
+  }
+  if (fields.length) emb.addFields(fields);
+  return emb;
+}
+
+function truncate(s: string, max: number) {
+  if (!s) return s;
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1) + "…";
 }
 
 export const projectRollupJob: ScheduledJob = {
@@ -184,7 +210,7 @@ export async function runProjectRollup(options?: {
   if (!forum) return;
 
   const threads = await fetchAllThreads(forum);
-  const rollupItems: { threadId: string; summary: string }[] = [];
+  const rollupItems: RollupItem[] = [];
 
   const now = Date.now();
   const cutoffTs = options?.cutoffMs;
@@ -210,10 +236,19 @@ export async function runProjectRollup(options?: {
 
     const prior: ThreadMemory | null = (memoryRow.memory as any) ?? null;
     const prompt = buildPrompt(thread.name ?? "Untitled", prior, prepared);
-    const summaryMem = await summarizeWithOpenAI(prompt);
-    if (!summaryMem?.summary) continue;
+    const summary = await summarizeWithOpenAI(prompt);
+    if (!summary) continue;
 
-    rollupItems.push({ threadId: thread.id, summary: summaryMem.summary });
+    const guildId = thread.guild?.id ?? "";
+    const parentId = thread.parentId ?? thread.id;
+    const authorMention = thread.ownerId ? `<@${thread.ownerId}>` : undefined;
+    rollupItems.push({
+      threadId: thread.id,
+      threadName: thread.name ?? "Untitled",
+      url: guildId ? `https://discord.com/channels/${guildId}/${parentId}/${thread.id}` : `https://discord.com/channels/@me/${thread.id}`,
+      summary,
+      authorMention,
+    });
 
     // Update memory. Only advance lastSeen for scheduled mode.
     const newestId = msgs[msgs.length - 1].id;
@@ -222,7 +257,7 @@ export async function runProjectRollup(options?: {
       .set({
         lastSeenMessageId: updateLastSeen ? newestId : memoryRow.lastSeenMessageId,
         lastSummaryAt: new Date(),
-        memory: summaryMem as any,
+        memory: {summary},
         threadName: thread.name ?? memoryRow.threadName,
         updatedAt: new Date(),
       })
