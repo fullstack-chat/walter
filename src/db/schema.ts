@@ -18,6 +18,7 @@ export const userXp = pgTable("user_xp", {
   username: text("username").notNull(),
   penaltyCount: integer("penaltyCount").notNull().default(0),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  temp: text("temp").notNull().default(""),
 });
 
 // Memory for project forum rollups per thread
