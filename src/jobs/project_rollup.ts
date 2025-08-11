@@ -122,6 +122,8 @@ type RollupItem = {
   url: string;
   summary: string;
   authorMention?: string;
+  mentions?: string[];
+  userMap?: Record<string, string>; // username (case-insensitive) -> userId
   keyPoints?: string[];
   contributors?: string[];
 }
@@ -163,7 +165,8 @@ async function postSummaryToChannel(channelId: string, items: RollupItem[]) {
 
 function buildProjectEmbed(item: RollupItem) {
   const color = 0x0099FF;
-  const desc = truncate(item.summary || "", 4096);
+  const base = item.summary || "";
+  const desc = truncate(mentionizeSummary(base, item.userMap), 4096);
   const emb = new EmbedBuilder()
     .setColor(color)
     .setTitle(item.threadName || "Project Update")
@@ -190,6 +193,27 @@ function truncate(s: string, max: number) {
   if (!s) return s;
   if (s.length <= max) return s;
   return s.slice(0, max - 1) + "…";
+}
+
+function mentionizeSummary(text: string, userMap?: Record<string, string>) {
+  if (!text || !userMap || Object.keys(userMap).length === 0) return text;
+  let out = text;
+  const entries = Object.entries(userMap).sort((a, b) => b[0].length - a[0].length);
+  for (const [username, userId] of entries) {
+    const name = username.trim();
+    if (!name) continue;
+    const escaped = escapeRegExp(name);
+    // Replace @username and bare username tokens, avoiding already-mention tokens like <@123>
+    const atPattern = new RegExp(`(?<!<@)!?@${escaped}(?!\\w)`, "gi");
+    const barePattern = new RegExp(`(?<!<@)\\b${escaped}\\b`, "gi");
+    out = out.replace(atPattern, `<@${userId}>`);
+    out = out.replace(barePattern, `<@${userId}>`);
+  }
+  return out;
+}
+
+function escapeRegExp(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export const projectRollupJob: ScheduledJob = {
@@ -242,12 +266,22 @@ export async function runProjectRollup(options?: {
     const guildId = thread.guild?.id ?? "";
     const parentId = thread.parentId ?? thread.id;
     const authorMention = thread.ownerId ? `<@${thread.ownerId}>` : undefined;
+    const nonBotMsgs = msgs.filter(m => !m.author.bot && m.content && m.content.trim() !== "");
+    const participantMentions = Array.from(new Set(nonBotMsgs.map(m => m.author.id))).map(id => `<@${id}>`);
+    const userMap: Record<string, string> = {};
+    for (const m of nonBotMsgs) {
+      if (m.author?.username && m.author?.id) {
+        userMap[m.author.username.toLowerCase()] = m.author.id;
+      }
+    }
     rollupItems.push({
       threadId: thread.id,
       threadName: thread.name ?? "Untitled",
       url: guildId ? `https://discord.com/channels/${guildId}/${parentId}/${thread.id}` : `https://discord.com/channels/@me/${thread.id}`,
       summary,
       authorMention,
+      mentions: participantMentions,
+      userMap,
     });
 
     // Update memory. Only advance lastSeen for scheduled mode.
