@@ -3,6 +3,7 @@ import { getInstance } from "../container";
 import ScheduledJob from "../models/scheduled_job";
 import { db, dbSchema } from "../db/client";
 import { eq } from "drizzle-orm";
+import { logger as log } from "../logger";
 
 type ThreadMemory = {
   summary?: string
@@ -10,8 +11,6 @@ type ThreadMemory = {
   contributors?: string[]
   lastActiveAt?: string
 }
-
-const log = getInstance("logger")
 
 async function getProjectForumChannel(): Promise<ForumChannel | null> {
   try {
