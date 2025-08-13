@@ -242,6 +242,27 @@ export async function runProjectRollup(options?: {
 
   for (const thread of threads) {
     if (thread.type !== ChannelType.PublicThread && thread.type !== ChannelType.PrivateThread && thread.type !== ChannelType.AnnouncementThread) continue;
+    
+    // Check if thread creator has reacted with :no_mobile_phones: to the starter message
+    try {
+      const starterMessage = await thread.fetchStarterMessage();
+      if (starterMessage) {
+        const noMobileReaction = starterMessage.reactions.cache.find(
+          reaction => reaction.emoji.name === '🚫📱' || reaction.emoji.name === 'no_mobile_phones'
+        );
+        
+        if (noMobileReaction) {
+          const reactors = await noMobileReaction.users.fetch();
+          if (reactors.has(thread.ownerId || '')) {
+            // Thread creator has opted out with the no_mobile_phones reaction
+            log.info(`Skipping thread ${thread.id} due to no_mobile_phones reaction from creator`);
+            continue;
+          }
+        }
+      }
+    } catch (e) {
+      log.error(`Failed to check reactions for thread ${thread.id}`, e);
+    }
 
     const memoryRow = await getOrCreateThreadMemory(thread);
     let msgs;

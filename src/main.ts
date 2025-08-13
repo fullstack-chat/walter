@@ -13,11 +13,7 @@ Sentry.init({
   profilesSampleRate: 1.0,
 });
 
-import nodeCron from "node-cron";
-import { getRandomDailyDiscussionQuestion } from "./data/questions";
-import { Cronitor } from "cronitor"
-
-import { ChannelType, Client, Events, GatewayIntentBits, Interaction } from "discord.js";
+import { ChannelType, Client, EmbedBuilder, Events, GatewayIntentBits, Interaction } from "discord.js";
 import { isSenderPatron, sendModBroadcast } from "./security";
 import { logger as log } from "./logger";
 
@@ -117,10 +113,45 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 
 client.on(Events.ThreadCreate, async thread => {
   if(thread.parentId === process.env.PROJECT_FORUM_CHANNEL_ID) {
+    // Send announcement to general channel
     const channelId = process.env.GENERAL_CHANNEL_ID as string;
     const channel = await client.channels.fetch(channelId)
-    // @ts-ignore
-    channel.send(`<@${thread.ownerId}> created a new project! Check it out: <#${thread.id}>`)
+    
+    if (channel && (channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement)) {
+      // Create an embed similar to project_rollup.ts
+      
+      const embed = new EmbedBuilder()
+        .setColor(0x0099FF)
+        .setTitle(`New Project: ${thread.name || 'Untitled Project'}`)
+        .setDescription(`A new project thread has been created!`)
+        .addFields(
+          { name: 'Project', value: `<#${thread.id}>`, inline: true },
+          { name: 'Creator', value: `<@${thread.ownerId}>`, inline: true }
+        )
+        .setTimestamp(new Date());
+      
+      await channel.send({ embeds: [embed] });
+    }
+    
+    // Send welcome message in the thread itself
+    try {
+      const welcomeMessage = `👋 **Welcome to Your Project Thread, <@${thread.ownerId}>!** 🎉
+
+Thanks for logging your project! This thread will help you track progress and share updates with the community.
+
+**Daily Updates**
+We encourage you to post updates here daily. Each morning (8:00 AM CT), a summary of your updates will be posted to the general channel.
+
+**Opt-Out of Daily Summaries**
+If you prefer not to have your updates included in the daily rollup, react to this thread's starter message with the :no_mobile_phones: (🚫📱) emoji.
+
+**Best Practices**
+Share your progress, blockers, and wins! The more you share, the more the community can help and celebrate with you.`;
+      
+      await thread.send(welcomeMessage);
+    } catch (e) {
+      log.error(`Failed to send welcome message to thread ${thread.id}`, e);
+    }
   }
 })
 
