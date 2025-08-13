@@ -120,10 +120,23 @@ client.on(Events.ThreadCreate, async thread => {
     if (channel && (channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement)) {
       // Create an embed similar to project_rollup.ts
       
+      // Fetch the starter message to get its content
+      let description = "A new project thread has been created!";
+      try {
+        const starterMessage = await thread.fetchStarterMessage();
+        if (starterMessage && starterMessage.content) {
+          description = starterMessage.content.length > 1500 
+            ? starterMessage.content.slice(0, 1500) + "..."
+            : starterMessage.content;
+        }
+      } catch (e) {
+        log.error(`Failed to fetch starter message for thread ${thread.id}`, e);
+      }
+      
       const embed = new EmbedBuilder()
         .setColor(0x0099FF)
         .setTitle(`New Project: ${thread.name || 'Untitled Project'}`)
-        .setDescription(`A new project thread has been created!`)
+        .setDescription(description)
         .addFields(
           { name: 'Project', value: `<#${thread.id}>`, inline: true },
           { name: 'Creator', value: `<@${thread.ownerId}>`, inline: true }
