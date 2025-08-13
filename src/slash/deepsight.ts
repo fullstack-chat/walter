@@ -1,6 +1,7 @@
 import { AttachmentBuilder, ChatInputCommandInteraction, ForumChannel, SlashCommandBuilder } from "discord.js";
 import SlashCommand, { SlashCommandOptionType } from "../models/slash_command";
 import { getMemberPermittedChannels } from "../security";
+import { isAiDisabled } from "../config";
 
 const helpText = `
 TODO:
@@ -21,6 +22,10 @@ export const deepsight: SlashCommand = {
     }
   ],
   execute: async (interaction: ChatInputCommandInteraction) => {
+    if(isAiDisabled) {
+      await interaction.reply("Sorry, I can't do that for you. The AI is disabled right now.");
+      return;
+    }
     await interaction.deferReply()
     const opt = {
       prompt: ""
