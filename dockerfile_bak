@@ -7,9 +7,9 @@ COPY ./package*.json ./
 RUN npm install
 
 COPY src/ ./src
-COPY .env.prod ./.env
+COPY .env ./
 COPY tsconfig.json ./
 
 RUN npm run build
 
-ENTRYPOINT [ "node", "/app/dist/main.js" ]
+CMD [ "node", "dist/main.js" ]
