@@ -159,7 +159,9 @@ New messages (chronological):\n${body}
 Requirements:
 - 1-3 sentences, crisp and specific about what progressed, decisions, blockers, and next steps.
 - Include names of key contributors if clear.
-- Avoid pleasantries and meta-chatter.`;
+- Avoid pleasantries and meta-chatter.
+- Assume that there's only a single contributor to the project. Unless clearly stated that a team
+  is involved, avoid references to "the team" in the summary.`;
 }
 
 async function summarizeWithOpenAI(prompt: string): Promise<string | null> {
