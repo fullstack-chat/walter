@@ -33,14 +33,14 @@ export const xp: SlashCommand = {
       let numGreenSegments = Math.floor(
         progressPercentage / NUM_PROGRESS_BAR_SEGMENTS
       )
-      let progressBar = "🟩"
+      let progressBar = "⬜ "
         .repeat(numGreenSegments)
-        .padEnd(NUM_PROGRESS_BAR_SEGMENTS * 2, " ⬛")
+        .padEnd(NUM_PROGRESS_BAR_SEGMENTS * 2, "⬛ ")
 
       let embed = new EmbedBuilder()
         .setTitle(interaction.user.displayName)
         .setDescription(
-          `**Level**: ${currentLevel}\n**XP**: ${currentXp}\nLevel up progress:${progressPercentage.toFixed()}%\n\n${progressBar}`
+          `**Level**: ${currentLevel}\n**XP**: ${currentXp}\nLevel up progress:${Math.floor(progressPercentage)}%\n\n${progressBar}`
         )
         .setTimestamp()
 
