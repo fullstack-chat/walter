@@ -21,26 +21,29 @@ export const xp: SlashCommand = {
   execute: async (interaction: ChatInputCommandInteraction) => {
     await interaction.deferReply();
 
-    const xpManager = getInstance(XpManager.name)
+    const xpManager: XpManager = getInstance(XpManager.name)
     let currentXp = xpManager.getXpForUserId(interaction.user.id)
 
     if (currentXp) {
-      const NUM_PROGRESS_BAR_SEGMENTS = 10
-      let currentLevel = xpManager.getLevelForUserId(interaction.user.id)
-      let progressPercentage: number = xpManager
-        .getLevelUpProgressPercentage(currentXp)
-
-      let numGreenSegments = Math.floor(
-        progressPercentage / NUM_PROGRESS_BAR_SEGMENTS
-      )
-      let progressBar = "⬜ "
-        .repeat(numGreenSegments)
-        .padEnd(NUM_PROGRESS_BAR_SEGMENTS * 2, "⬛ ")
+      let currentLevel: number = xpManager.getLevelForUserId(interaction.user.id)
+      let progressPercentage: number = xpManager.getLevelUpProgressPercentage(currentXp)
 
       let embed = new EmbedBuilder()
         .setTitle(interaction.user.displayName)
-        .setDescription(
-          `**Level**: ${currentLevel}\n**XP**: ${currentXp}\nLevel up progress:${Math.floor(progressPercentage)}%\n\n${progressBar}`
+        .addFields(
+          {
+            name: "Level",
+            value: currentLevel.toString(),
+            inline: true
+          },
+          {
+            name: "XP",
+            value: new Intl.NumberFormat("en-US").format(currentXp),
+            inline: true
+          },
+        )
+        .setImage(
+          `https://progress-bar.xyz/${Math.floor(progressPercentage)}/?width=120&progress_color=5aad5a`
         )
         .setTimestamp()
 
