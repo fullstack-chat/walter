@@ -175,6 +175,17 @@ export default class XpManager {
     return Object.values(this.data).sort((a, b) => b.currentXp - a.currentXp).splice(0, 10);
   }
 
+  getLevelUpProgressPercentage(xp: number): number {
+      let currentLevel = this.getLevelByXp(xp);      
+      let currentLevelEntryXp = this.getXpByLevel(currentLevel)
+      let nextLevelEntryXp = this.getXpByLevel(currentLevel + 1)
+      
+      let userXpProgress = xp - currentLevelEntryXp
+      let xpGapBetweenLevels = nextLevelEntryXp - currentLevelEntryXp
+
+      return userXpProgress * 100 / xpGapBetweenLevels
+  }
+
   private getLevelByXp(xp: number): number {
     return Math.floor(this.levelUpConst * Math.sqrt(xp));
   }
