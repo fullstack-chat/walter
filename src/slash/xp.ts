@@ -35,7 +35,7 @@ export const xp: SlashCommand = {
       )
       let progressBar = "🟩"
         .repeat(numGreenSegments)
-        .padEnd(NUM_PROGRESS_BAR_SEGMENTS, "⬛")
+        .padEnd(NUM_PROGRESS_BAR_SEGMENTS * 2, " ⬛")
 
       let embed = new EmbedBuilder()
         .setTitle(interaction.user.displayName)
