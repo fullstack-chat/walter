@@ -42,8 +42,8 @@ export const xp: SlashCommand = {
             inline: true
           },
         )
-        .setImage(
-          `https://progress-bar.xyz/${Math.floor(progressPercentage)}/?width=120&progress_color=5aad5a`
+        .setThumbnail(
+          `https://progress-bar.xyz/${progressPercentage.toFixed()}?progress_color=5aad5a`
         )
         .setTimestamp()
 
