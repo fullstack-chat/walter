@@ -43,7 +43,7 @@ export const xp: SlashCommand = {
           },
         )
         .setImage(
-          `https://progressbar.maciejpedzi.ch/${progressPercentage.toFixed()}.png`
+          `https://progressbar.maciejpedzi.ch/${progressPercentage.toFixed()}.png/`
         )
         .setTimestamp()
 
